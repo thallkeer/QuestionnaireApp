@@ -6,16 +6,15 @@ using System.Linq;
 
 namespace QuestionnaireApp
 {
-    public class IOCommands
+    public static class IOCommands
     {
-        private const string catalogName = "Profiles";
-
+        private static readonly string CATALOG_NAME = "Profiles";
         private static DirectoryInfo RootDirectory;
 
         static IOCommands()
         {
             string currentDirectory = Directory.GetCurrentDirectory();
-            string combinedPath = Path.Combine(currentDirectory, catalogName);
+            string combinedPath = Path.Combine(currentDirectory, CATALOG_NAME);
 
             RootDirectory = new DirectoryInfo(combinedPath);
             RootDirectory.Create();
@@ -117,7 +116,7 @@ namespace QuestionnaireApp
                     questionaries.Add(Questionary.GetQuestionaryFromStream(sr));
             }
 
-            Questionary.GetStatistics(questionaries);
+            Questionary.PrintStatistics(questionaries);
         }
 
         /// <summary>
@@ -130,7 +129,7 @@ namespace QuestionnaireApp
             if (string.IsNullOrWhiteSpace(fileName))
                 throw new ArgumentException("path");
 
-            FileInfo file = GetFileInfoByPath(fileName);
+            FileInfo file = GetFileInfoByPath(fileName.Trim('"'));
 
             ZipArchive zipArchive;
             if (!File.Exists(path))

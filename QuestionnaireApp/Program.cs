@@ -27,14 +27,12 @@ namespace QuestionnaireApp
                     case CommandsHelper.NEW_PROFILE:
                         questionary = Questionary.StartQuestioning();
                         Console.WriteLine("Select an action. Type -help to see all available commands.");
-                        break;                   
+                        break;                    
                     case CommandsHelper.EXIT:
                         Environment.Exit(0);
                         break;
                     default:
-                        Type t = typeof(IOCommands);
-                        MethodInfo mi = t.GetMethod(CommandsHelper.GetMethodByCommand(input.ExtractCommand()));                       
-                        mi.Invoke(null, input.ExtractArguments());
+                        CommandsHelper.ExecuteCommand(input, questionary);
                         break;
                 }
             }

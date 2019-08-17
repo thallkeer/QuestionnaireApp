@@ -10,6 +10,7 @@ namespace QuestionnaireApp
 {
     public class Questionary
     {
+        private static readonly string dateFormat = "dd.mm.yyyy";
         private class AskResult
         {
             public bool IsValidAnswer { get; set; }
@@ -64,7 +65,7 @@ namespace QuestionnaireApp
         public Questionary()
         {
             this.CurrentState = QuestionaryState.AnsweringFio;
-            this.completedQuestions = new Dictionary<int, bool>()
+            this.completedQuestions = new Dictionary<int, bool>
             {
                 {1,false},
                 {2,false},
@@ -158,7 +159,7 @@ namespace QuestionnaireApp
         }
         private void SetBirthDate(string birthDate)
         {
-            this.DateOfBirth = DateTime.ParseExact(birthDate, "dd.mm.yyyy", null, DateTimeStyles.None);
+            this.DateOfBirth = DateTime.ParseExact(birthDate, dateFormat, null, DateTimeStyles.None);
         }
         private void SetFavouriteLanguage(string favLang)
         {
@@ -214,6 +215,8 @@ namespace QuestionnaireApp
                                 questionary.CompletionDate = DateTime.Now;
                             }
                             break;
+                        default:
+                            break;
                     }
                 }
             }
@@ -234,7 +237,7 @@ namespace QuestionnaireApp
             questionary.CompletionDate = DateTime.Parse(ParseValueFromLine(sr.ReadToEnd()));
             return questionary;
         }
-        public static void GetStatistics(List<Questionary> questionaries)
+        public static void PrintStatistics(List<Questionary> questionaries)
         {
             if (questionaries == null || questionaries.Count == 0)
                 return;
@@ -267,30 +270,25 @@ namespace QuestionnaireApp
             Console.WriteLine($"Самый популярный язык программирования: {mostPopularLanguage}");
             Console.WriteLine($"Самый опытный программист: {mostExperienced}");
         }
+        
         private static AskResult AskPhoneNumber()
         {
             string answer;
-            bool answered = AskQuestion($@"Укажите номер вашего мобильного телефона: ",
+            bool answered = AskQuestion($@"Enter your phone number: ",
                 checkPhoneNumber, out answer);
             return new AskResult(answered, answer);
 
             //TODO: поменять на правильную регулярку
             bool checkPhoneNumber(string input)
             {
-                //Regex regex = new Regex(@"/^(8|\+7)\d{3}\d{7}$/", RegexOptions.Compiled);
-                //return regex.IsMatch(input);
-                foreach (char c in input)
-                {
-                    if (!char.IsDigit(c))
-                        return false;
-                }
-                return true;
+                Regex regex = new Regex(@"^((8|\+7)[\- ]?)?(\(?\d{3}\)?[\- ]?)?[\d\- ]{7,10}$", RegexOptions.Compiled);
+                return regex.IsMatch(input);
             }
         }
         private static AskResult AskExperience()
         {
             string answer;
-            bool answered = AskQuestion($@"Укажите ваш опыт программирования на указанном языке (полных лет): ",
+            bool answered = AskQuestion($@"Enter your programming experience in the specified language (full years): ",
                 checkExperience, out answer);
             return new AskResult(answered, answer);
 
@@ -303,7 +301,7 @@ namespace QuestionnaireApp
         private static AskResult AskFavLanguage()
         {
             string answer;
-            bool answered = AskQuestion($@"Выберите свой любимый язык программирования из предложенных: {string.Join(", ", ProgrammingLanguages)}",
+            bool answered = AskQuestion($@"Choose your favorite programming language from the proposed: {string.Join(", ", ProgrammingLanguages)}",
                 checkFavLanguage, out answer);
             return new AskResult(answered, answer);
 
@@ -315,19 +313,19 @@ namespace QuestionnaireApp
         private static AskResult AskDateOfBirth()
         {
             string answer;
-            bool answered = AskQuestion(@"Введите вашу дату рождения в формате дд.мм.гггг (дата.месяц.год): ", checkDoB, out answer);
+            bool answered = AskQuestion($@"Enter your date of birth in {dateFormat} format: ", checkDoB, out answer);
             return new AskResult(answered, answer);
 
             bool checkDoB(string input)
             {
                 DateTime date; // date of birth
-                return DateTime.TryParseExact(input, "dd.mm.yyyy", null, DateTimeStyles.None, out date);
+                return DateTime.TryParseExact(input, dateFormat, null, DateTimeStyles.None, out date);
             }
         }
         private static AskResult AskFio()
         {
             string answer;
-            bool answered = AskQuestion("Введите ваши ФИО: ", checkFIO, out answer);
+            bool answered = AskQuestion("Enter your full name: ", checkFIO, out answer);
             return new AskResult(answered, answer);
 
             bool checkFIO(string input)
@@ -375,13 +373,13 @@ namespace QuestionnaireApp
         public override string ToString()
         {
             return
-$@"1. ФИО: {this.FIO}
-2. Дата рождения: {this.DateOfBirth.ToShortDateString()}
-3. Любимый язык программирования: {this.FavouriteLanguage}
-4. Опыт программирования на указанном языке: {this.Experience.ToString()}
-5. Мобильный телефон: {this.PhoneNumber}
+$@"1. Full name: {this.FIO}
+2. Date of Birth: {this.DateOfBirth.ToShortDateString()}
+3. Favourite programming language: {this.FavouriteLanguage}
+4. Programming experience on the specified language: {this.Experience.ToString()}
+5. Phone number: {this.PhoneNumber}
 
-Анкета заполнена: {this.CompletionDate.ToString()}";
+Profile filled: {this.CompletionDate.ToString()}";
         }
     }    
 }

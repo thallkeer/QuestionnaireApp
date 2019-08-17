@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
+using System.Reflection;
 
 namespace QuestionnaireApp
 {
@@ -27,37 +28,34 @@ namespace QuestionnaireApp
         {
             CommandDescriptions = new Dictionary<string, (string method, string commandDescription)>
         {
-            {HELP, (string.Empty,@"Показать список доступных команд с описанием") },
-            {NEW_PROFILE, (string.Empty,@"Заполнить новую анкету") },
-            {STATISTICS, (nameof(IOCommands.GetStatistics),@"Показать статистику всех заполненных анкет") },
-            {SAVE, (nameof(IOCommands.Save),@"Сохранить заполненную анкету") },
-            {GOTO_QUESTION, (string.Empty,@"n <Номер вопроса> - Вернуться к указанному вопросу
-(Команда доступна только при заполнении анкеты, вводится вместо ответа на
-любой вопрос)") },
-            {GOTO_PREV_QUESTION, (string.Empty,@"Вернуться к предыдущему вопросу (Команда
-доступна только при заполнении анкеты, вводится вместо ответа на любой
-вопрос)") },
-            {RESTART_PROFILE, (string.Empty,@"Заполнить анкету заново (Команда доступна только при
-заполнении анкеты, вводится вместо ответа на любой вопрос)
-") },
-            {FIND, (nameof(IOCommands.FindQuestionary),@"<Имя файла анкеты> - Найти анкету и показать данные анкеты в
-консоль
-") },
-            {DELETE, (nameof(IOCommands.DeleteQuestionary),@"<Имя файла анкеты> - Удалить указанную анкету") },
-            {LIST, (nameof(IOCommands.ListQuestionaries),@"Показать список названий файлов всех сохранённых анкет") },
-            {LIST_TODAY, (nameof(IOCommands.ListTodayQuestionaries),@"Показать список названий файлов всех сохранённых анкет,
-созданных сегодня") },
-            {ZIP, (nameof(IOCommands.Zip),@"<Имя файла анкеты> <Путь для сохранения архива> - Запаковать
-указанную анкету в архив и сохранить архив по указанному пути") },
-            {EXIT, (nameof(string.Empty),"Выйти из приложения") }
+            {HELP, (string.Empty,@"Show a list of available commands with a description") },
+            {NEW_PROFILE, (string.Empty,@"Fill out a new questionnaire") },
+            {STATISTICS, (nameof(IOCommands.GetStatistics),@"Show statistics for all completed questionnaires") },
+            {SAVE, (nameof(IOCommands.Save),@"Save the completed questionnaire") },
+            {GOTO_QUESTION, (string.Empty,@"<Question number> - Return to the specified question
+(The command is available only when filling out the questionnaire, it is entered instead of answer to
+any question)") },
+            {GOTO_PREV_QUESTION, (string.Empty,@"Return to the previous question (The command is
+available only when filling out the questionnaire, it is entered instead of the answer to any
+question)") },
+            {RESTART_PROFILE, (string.Empty,@"Fill out the questionnaire again (The command is
+available only when filling out the questionnaire, it is entered instead of the answer to any
+question)") },
+            {FIND, (nameof(IOCommands.FindQuestionary),@"""<Filename>"" - Find questionnaire and show it's data in
+console") },
+            {DELETE, (nameof(IOCommands.DeleteQuestionary),@"""<Filename>"" - Delete the specified questionnaire") },
+            {LIST, (nameof(IOCommands.ListQuestionaries),@"Show a list of file names of all saved questionnaires") },
+            {LIST_TODAY, (nameof(IOCommands.ListTodayQuestionaries),@"Show a list of file names of all saved questionnaires, created today") },
+            {ZIP, (nameof(IOCommands.Zip),@"""<Filename>"" <Path to save> - To pack the specified questionnaire in the archive and save the archive at the specified path") },
+            {EXIT, (nameof(string.Empty),"Exit application") }
         };
         }        
 
         public static void PrintAvailableCommands()
         {
-            foreach (KeyValuePair<string, (string method,string description)> kvp in CommandDescriptions)
+            foreach (KeyValuePair<string, (string method,string commandDescription)> kvp in CommandDescriptions)
             {
-                Console.WriteLine($"cmd: {kvp.Key} - {kvp.Value.description}");
+                Console.WriteLine($"cmd: {kvp.Key} - {kvp.Value.commandDescription}");
             }
         }
 
@@ -68,23 +66,41 @@ namespace QuestionnaireApp
 
         public static bool IsCommand(string input)
         {
-            return CommandDescriptions.ContainsKey(input);
+            return CommandDescriptions.ContainsKey(input.ExtractCommand());
         }
 
-        
-
-       
+        public static void ExecuteCommand(string input, Questionary questionary)
+        {
+            Type t = typeof(IOCommands);
+            MethodInfo mi = t.GetMethod(GetMethodByCommand(input.ExtractCommand()));
+            if (mi == null)
+                return;
+            //TODO: Fix problem with arguments 
+            ParameterInfo[] parameters = mi.GetParameters();
+            if (parameters.Length == 1 && parameters[0].ParameterType == typeof(Questionary))
+                mi.Invoke(null, new object[] { questionary });
+            else
+                mi.Invoke(null, input.ExtractArguments());
+        }
     }
 
     public static class StringExtensions
     {
         public static string ExtractCommand(this string str)
-        {            
+        {
+            if (string.IsNullOrWhiteSpace(str))
+                return str;
             return str.Split(' ')[0];
         }
 
         public static string[] ExtractArguments(this string str)
         {
+            int quoteIndex = str.IndexOf('"');
+            if (quoteIndex != -1)
+            {
+
+            }
+
             string[] res = str.Split(' ').Skip(1).ToArray();
             return res.Length == 0 ? null : res;
         }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace QuestionnaireApp
 {
@@ -10,12 +11,15 @@ namespace QuestionnaireApp
             Console.Title = "Questionnaire";
             Console.WriteLine("Select an action. Type -help to see all available commands.");
 
-            Questionary questionary=null;
+            Questionary questionary = null;
 
             while (true)
-            {                
-                string command = Console.ReadLine();
-                switch (command)
+            {
+                string input = Console.ReadLine();
+                if (!CommandsHelper.IsCommand(input))
+                    continue;
+
+                switch (input)
                 {
                     case CommandsHelper.HELP:
                         CommandsHelper.PrintAvailableCommands();
@@ -23,22 +27,14 @@ namespace QuestionnaireApp
                     case CommandsHelper.NEW_PROFILE:
                         questionary = Questionary.StartQuestioning();
                         Console.WriteLine("Select an action. Type -help to see all available commands.");
-                        break;
-                    case CommandsHelper.SAVE:
-                        if (questionary != null)
-                            IOCommands.Save(questionary);
-                        break;
-                    case CommandsHelper.LIST:
-                        IOCommands.ListQuestionaries();
-                        break;                    
-                    case CommandsHelper.LIST_TODAY:
-                        IOCommands.ListTodayQuestionaries();
-                        break;
-                    case CommandsHelper.STATISTICS:
-                        IOCommands.GetStatistics();
-                        break;
+                        break;                   
                     case CommandsHelper.EXIT:
                         Environment.Exit(0);
+                        break;
+                    default:
+                        Type t = typeof(IOCommands);
+                        MethodInfo mi = t.GetMethod(CommandsHelper.GetMethodByCommand(input.ExtractCommand()));                       
+                        mi.Invoke(null, input.ExtractArguments());
                         break;
                 }
             }

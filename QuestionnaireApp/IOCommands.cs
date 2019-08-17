@@ -1,30 +1,39 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 
 namespace QuestionnaireApp
 {
-    public static class IOCommands
+    public class IOCommands
     {
-        private const string catalogName = "Анкеты";
+        private const string catalogName = "Profiles";
 
-        private static DirectoryInfo GetOrCreateRootDirectory()
+        private static DirectoryInfo RootDirectory;
+
+        static IOCommands()
         {
             string currentDirectory = Directory.GetCurrentDirectory();
             string combinedPath = Path.Combine(currentDirectory, catalogName);
 
-            DirectoryInfo directoryInfo = new DirectoryInfo(combinedPath);
-            if (!Directory.Exists(combinedPath))
-                directoryInfo.Create();
-            return directoryInfo;
+            RootDirectory = new DirectoryInfo(combinedPath);
+            RootDirectory.Create();
         }
 
         public static void Save(Questionary questionary)
         {
-            var directoryInfo = GetOrCreateRootDirectory();
+            if (questionary == null)
+                return;
 
-            FileInfo fileInfo = new FileInfo(Path.Combine(directoryInfo.FullName, questionary.FIO + ".txt"));
+            if (questionary.CompletionDate == null)
+            {
+                Console.WriteLine("Cannot save questionnaire because it is not completed!");
+                return;
+            }
+
+
+            FileInfo fileInfo = new FileInfo(Path.Combine(RootDirectory.FullName, questionary.FIO + ".txt"));
             if (!fileInfo.Exists)
             {
                 try
@@ -39,23 +48,39 @@ namespace QuestionnaireApp
             }
         }
 
+        private static FileInfo GetFileInfoByPath(string path)
+        {
+            if (path == null || path.Length == 0)
+            {
+                throw new ArgumentNullException("path");
+            }
+            
+            FileInfo fileInfo = new FileInfo(Path.Combine(RootDirectory.FullName, path + ".txt"));
+
+            if (!fileInfo.Exists)
+            {
+                throw new FileNotFoundException("The file was not found.", path);
+            }
+
+            return fileInfo;
+        }
+
         public static void FindQuestionary(string path)
         {
-            var directoryInfo = GetOrCreateRootDirectory();
-            FileInfo fileInfo = new FileInfo(Path.Combine(directoryInfo.FullName, path + ".txt"));
+            FileInfo fileInfo = GetFileInfoByPath(path);
             using (var sr = fileInfo.OpenText())
                 Console.WriteLine(Questionary.GetQuestionaryFromStream(sr).ToString());
         }
 
         public static void DeleteQuestionary(string path)
         {
-
+            FileInfo fileInfo = GetFileInfoByPath(path);
+            fileInfo.Delete();
         }
         
         public static void ListQuestionaries()
         {
-            var directoryInfo = GetOrCreateRootDirectory();
-            foreach (var file in directoryInfo.EnumerateFiles())
+            foreach (var file in RootDirectory.EnumerateFiles())
             {                
                 Console.WriteLine(file.Name);
             }
@@ -64,8 +89,7 @@ namespace QuestionnaireApp
         //TODO: переделать на получение даты заполнения из файла
         public static void ListTodayQuestionaries()
         {
-            var directoryInfo = GetOrCreateRootDirectory();
-            foreach (var file in directoryInfo.EnumerateFiles())
+            foreach (var file in RootDirectory.EnumerateFiles())
             {
                 if (file.LastWriteTime.Date == DateTime.Today.Date)
                     Console.WriteLine(file.Name);
@@ -86,48 +110,34 @@ namespace QuestionnaireApp
 */
         public static void GetStatistics()
         {
-            var directoryInfo = GetOrCreateRootDirectory();
             List<Questionary> questionaries = new List<Questionary>();
-            foreach (var file in directoryInfo.EnumerateFiles())
+            foreach (var file in RootDirectory.EnumerateFiles())
             {
                 using (var sr = file.OpenText())
                     questionaries.Add(Questionary.GetQuestionaryFromStream(sr));
             }
 
-            if (questionaries.Count != 0)
-            {
-                int averageAge = (int)questionaries.Select(q => Utils.GetAge(q.DateOfBirth)).Average();
-
-                string ageName = String.Empty;
-                switch (averageAge%10)
-                {
-                    case 1:
-                        ageName = "год";
-                        break;
-                    case 2:
-                    case 3:
-                    case 4:
-                        ageName = "года";
-                        break;
-                    default:
-                        ageName = "лет";
-                        break;
-                }
-                
-                string mostPopularLanguage = questionaries.GroupBy(q => q.FavouriteLanguage)
-                                                          .OrderByDescending(g => g.Count())
-                                                          .First().Key;
-                string mostExperienced = questionaries.OrderByDescending(q => q.Experience).First().FIO;
-
-                Console.WriteLine($"Средний возраст опрошенных: {averageAge} {ageName}");
-                Console.WriteLine($"Самый популярный язык программирования: {mostPopularLanguage}");
-                Console.WriteLine($"Самый опытный программист: {mostExperienced}");
-            }
+            Questionary.GetStatistics(questionaries);
         }
 
+        /// <summary>
+        /// Method packs the specified file to the archive and saves it at the specified path
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <param name="path"></param>
         public static void Zip(string fileName, string path)
-        {
+        {           
+            if (string.IsNullOrWhiteSpace(fileName))
+                throw new ArgumentException("path");
 
+            FileInfo file = GetFileInfoByPath(fileName);
+
+            ZipArchive zipArchive;
+            if (!File.Exists(path))
+                zipArchive = ZipFile.Open(path, ZipArchiveMode.Create);
+            else zipArchive = ZipFile.OpenRead(path);
+
+            zipArchive.CreateEntryFromFile(file.DirectoryName, fileName + ".txt");
         }
     }
 }
